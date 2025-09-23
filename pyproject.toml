@@ -1,0 +1,10 @@
+[project]
+name = "rhythmic-pattern-transcription"
+version = "0.0.0"
+description = "Supplementary code for the paper 'Transcribing Rhythmic Patterns of the Guitar Track in Polyphonic Music'"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mir-eval>=0.8.2",
+    "numpy>=2.3.3",
+]
