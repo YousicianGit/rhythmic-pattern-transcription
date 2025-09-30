@@ -12,7 +12,7 @@ Run the downbeat processing script:
 import numpy as np
 from downbeat import process_downbeats
 
-downbeats = np.asarray([...], dtype=np.float64)
+downbeats = np.sort(np.asarray([...], dtype=np.float64))
 processed = process_downbeats(downbeats)
 ```
 

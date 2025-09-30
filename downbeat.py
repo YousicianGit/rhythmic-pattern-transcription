@@ -11,18 +11,16 @@ def process_downbeats(
     downbeat_times: NDArray[np.float64],
     *,
     max_previous_distance: int = 3,
-    tie_tolerance: float = 0.0,
     inlier_tolerance: float = 0.1,
     strides: tuple[int, ...] = (1, 2, 4),
 ) -> NDArray[np.float64]:
     half_median_downbeats = enforce_half_median_bar_length(
         downbeat_times,
         max_previous_distance=max_previous_distance,
-        tie_tolerance=tie_tolerance,
     )
     downbeat_times = refine_metrical_level(
         half_median_downbeats,
-        reference_onsets=downbeat_times,
+        reference_downbeats=downbeat_times,
         window_tolerance=inlier_tolerance,
         strides=strides,
     )
@@ -33,7 +31,6 @@ def enforce_half_median_bar_length(
     downbeat_times: NDArray[np.float64],
     *,
     max_previous_distance: int = 3,
-    tie_tolerance: float = 0.0,
 ) -> NDArray[np.float64]:
     """
     Clean up a sequence of estimated downbeat times, to make it consistent and remove noisy data points.
@@ -59,15 +56,12 @@ def enforce_half_median_bar_length(
     max_cost = 1e3
     # Dynamic Programming [DP] arrays:
     # - dp_cost[i] = min total cost to end at i over any path length.
-    # - dp_len[i]  = number of nodes in that best path (for tie-break: prefer shorter).
     # - back_prev[i] = predecessor index for backtracking.
     dp_cost = np.full(n, max_cost, dtype=np.float64)
-    dp_len = np.full(n, np.iinfo(np.int32).max, dtype=np.int32)
     back_prev = np.full(n, -1, dtype=np.int32)
 
     # DP base case
     dp_cost[0] = 0.0
-    dp_len[0] = 1
     back_prev[0] = -1
 
     # Forward pass
@@ -83,7 +77,7 @@ def enforce_half_median_bar_length(
             base = dp_cost[prev]
 
             interval = times[current] - times[prev]
-            num_cycles = int(np.maximum(1, np.round(interval / half_median_bar_length)))
+            num_cycles = np.maximum(1, np.round(interval / half_median_bar_length))
             error = interval - num_cycles * half_median_bar_length
 
             # First and last downbeat are sometimes wrong. As we require including them, they may distort also
@@ -94,21 +88,14 @@ def enforce_half_median_bar_length(
                     cost_multiplier = 0.01
                 elif d == 2:
                     cost_multiplier = 0.5
-                else:
-                    cost_multiplier = 0.67
 
             candidate_cost = base + cost_multiplier * error**2
-            candidate_len = dp_len[prev] + 1
 
             # Select best predecessor
-            if candidate_cost < best_cost - tie_tolerance:
-                best_cost, best_len, best_prev = candidate_cost, candidate_len, prev
-            elif abs(candidate_cost - best_cost) <= tie_tolerance and candidate_len < best_len:
-                # Tie on cost: prefer fewer steps
-                best_cost, best_len, best_prev = candidate_cost, candidate_len, prev
+            if candidate_cost < best_cost:
+                best_cost, best_prev = candidate_cost, prev
 
         dp_cost[current] = best_cost
-        dp_len[current] = best_len
         back_prev[current] = best_prev
 
     # Backtrack pass
@@ -119,8 +106,8 @@ def enforce_half_median_bar_length(
         if prev < 0:
             raise ValueError(f"Unexpected best previous distance indices {prev} at index {index}, should be >= 0")
         interval = times[index] - times[prev]
-        num_cycles = int(np.maximum(1, np.round(interval / half_median_bar_length)))
-        for cycle in range(num_cycles):
+        num_cycles = np.maximum(1, np.round(interval / half_median_bar_length))
+        for cycle in range(int(num_cycles)):
             downbeats.append(times[index] - cycle * interval / num_cycles)
         index = prev
 
@@ -129,29 +116,29 @@ def enforce_half_median_bar_length(
 
 
 def refine_metrical_level(
-    estimated_onsets: NDArray[np.float64],
+    estimated_downbeats: NDArray[np.float64],
     *,
-    reference_onsets: NDArray[np.float64],
+    reference_downbeats: NDArray[np.float64],
     window_tolerance: float = 0.05,
     strides: tuple[int, ...] = (1, 2, 4),
 ) -> NDArray[np.float64]:
     """
-    Refine metrical level of candidate onsets by comparing to reference onsets.
-    This is done by trying different downsampling factors (and a beginning onsets)
+    Refine metrical level of candidate downbeats by comparing to reference downbeats.
+    This is done by trying different downsampling factors (and a beginning downbeats)
     and choosing the one that maximizes the F-measure calculated by
-    comparing the `candidate_onsets` against the given input `reference_onsets`.
+    comparing the `candidate_downbeats` against the given input `reference_downbeats`.
 
     Such procedure can help with fixing these two common problems:
-    1. Wrong metrical level: when candidate onsets are kind of correct but either upsampled or downsampled.
-    2. "Pi-phase" errors: the estimated onsets are exactly 180° wrong,
-        so that they are at the middle of the reference onsets
+    1. Wrong metrical level: when candidate downbeats are kind of correct but either upsampled or downsampled.
+    2. "Pi-phase" errors: the estimated downbeats are exactly 180° wrong,
+        so that they are at the middle of the reference downbeats
     """
     strides = tuple(sorted(set(strides)))
     if strides[0] < 1:
         raise ValueError("strides must be positive integers")
 
-    candidate = np.asarray(estimated_onsets, dtype=np.float64, copy=True)
-    reference = np.asarray(reference_onsets, dtype=np.float64, copy=True)
+    candidate = np.asarray(estimated_downbeats, dtype=np.float64, copy=True)
+    reference = np.asarray(reference_downbeats, dtype=np.float64, copy=True)
 
     if candidate.size == 0:
         return candidate
