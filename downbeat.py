@@ -67,7 +67,6 @@ def enforce_half_median_bar_length(
     # Forward pass
     for current in range(1, n):
         best_cost = max_cost
-        best_len = np.iinfo(np.int32).max
         best_prev = -1
 
         # Try all predecessors within max_previous_distance
