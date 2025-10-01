@@ -20,4 +20,4 @@ processed = process_downbeats(downbeats)
 [excerpts](excerpts/) folder contains audio excerpts from the held‑out test split used in the paper, 2 excerpts per difficulty category (simplified, intermediate, advanced, original).
 Each excerpt represents a 10-second clip of polyphonic music with guitar and has two associated files:
 - `{difficulty}_{i}_full_mix.ogg`: The full mix audio file containing all instruments.
-- `{difficulty}_{i}_guitar_with_clicks`: The isolated target guitar track with added click sounds at the strum onsets predictions. All predictions are made on `other` stem using the MERT-based model fine-tuned on `other` stems.
+- `{difficulty}_{i}_guitar_with_clicks`: The isolated target guitar track before mixing with added click sounds at the strum onsets predictions. All predictions are made on `other` stem using the MERT-based model fine-tuned on `other` stems.
