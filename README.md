@@ -1,4 +1,6 @@
 # rhythmic-pattern-transcription
+[![ArXiv](https://img.shields.io/badge/arXiv-2510.05756-b31b1b?logo=arxiv&labelColor=gray)](https://arxiv.org/abs/2510.05756)
+
 Companion resources for the paper 'Transcribing Rhythmic Patterns of the Guitar Track in Polyphonic Music'
 
 ## Downbeat processing
